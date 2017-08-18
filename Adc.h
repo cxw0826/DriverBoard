@@ -17,6 +17,8 @@ sfr ADC_LOW2    =   0xBE;           //ADCµÍ2Î»½á¹û
 
 void  ADC_Init(void);
 BYTE ADC_GetResult(void);
+void  ADC_Test(void);
+
 
 
 

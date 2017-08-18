@@ -1,10 +1,27 @@
-#include "Adc.h"
+#include 	"Adc.h"
+#include	"Uart.h"
 
 void ADC_Delay2us(void)		//@11.0592MHz
 {
 	unsigned char i;
 	i = 3;
 	while (--i);
+}
+
+void ADC_Delay500ms(void)		//@11.0592MHz
+{
+	unsigned char i, j, k;
+
+	i = 22;
+	j = 3;
+	k = 227;
+	do
+	{
+		do
+		{
+			while (--k);
+		} while (--j);
+	} while (--i);
 }
 
 /*----------------------------
@@ -34,4 +51,24 @@ void ADC_Init(void)
 	ADC_RES = 0;                    		//清除结果寄存器
 	ADC_CONTR = ADC_POWER | ADC_SPEEDLL;
 }
+/*----------------------------
+测试ADC
+----------------------------*/
+void ADC_Test(void)
+{
+	BYTE		ADC_Result[3];
+	//空板测试结果为75
+	while(1)
+	{
+		ADC_Result[0] = ADC_GetResult();
+		ADC_Result[1] = '0' + ADC_Result[0]/10;
+		ADC_Result[2] = '0' + ADC_Result[1]%10;
+		SendString("Current ADC Result is :");
+		SendData(ADC_Result[1]);
+		SendData(ADC_Result[2]);
+		SendString("\r\n");
+		ADC_Delay500ms();
+	}
+}
+
 
