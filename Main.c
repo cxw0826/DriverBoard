@@ -3,6 +3,7 @@
 #include	"RF433.h"
 #include	"Uart.h"
 #include	"Door.h"
+#include	"Battery.h"
 
 void main(void)
 {
@@ -20,8 +21,11 @@ void main(void)
 
 	//初始化开关锁
 	Door_Init();
-	Door_Test();
+	//Door_Test();
 
+	//初始化电池电量计
+	Battery_Init();
+	Battery_Test();
 	
 	while(1);
 }
