@@ -3,7 +3,9 @@
 
 void Cw2015_Pwr_CtrlA(BYTE State);
 void Cw2015_Pwr_CtrlB(BYTE State);
-void IIC_Delay(void)	;
+void IIC_Delay(void);
+void Cw2015_Init_A(void);
+
 
 
 void Bat_Delay500ms()		//@11.0592MHz
@@ -25,21 +27,31 @@ void Bat_Delay500ms()		//@11.0592MHz
 //初始化IIC和电量计芯片
 void Battery_Init(void)
 {
-	//P3.5 P3.6 P3.7配置为准双向口
+	//P3.5 P3.6 配置为准双向口
 	P3M0 &= ~0xE0;
 	P3M1 &= ~0xE0;
-	//P2.0  P2.1 配置为准双向口
+	//P2.1 配置为准双向口
 	P2M0 &= ~0x03;
 	P2M1 &= ~0x03;
+	/*
+	//P2.0  P3.7 配置为高阻输入
+	P2M0 &= ~0x01;
+	P2M1 |=  0x01;
+	
+	P3M0 &= ~0x80;
+	P3M1 |=  0x80;
+	*/
 	IIC_Delay();
 	//拉高总线
 	IIC_SDA  =  1;
 	IIC_Delay();
 	IIC_SCL  =  1;
 	IIC_Delay();
-	//初始化电量计芯片
+	//关闭两路电量计芯片电压
 	Cw2015_Pwr_CtrlA(Off);
 	Cw2015_Pwr_CtrlB(Off);
+	//初始化电量计参数
+	Cw2015_Init_A();
 }
 
 /*********************************************************
@@ -217,81 +229,134 @@ void Cw2015_Pwr_CtrlB(BYTE State)
 		Bat_Detect_Pwr_Ctrl_B = 0;
 	}
 }
-
+//刷新Cw2015,就像断电重启一样
+void Cw2015_POR_Refresh(void)
+{
+	IIC_Write_Reg(Cw2015_WR_ID,Cw2015_Mode_Reg,Cw2015_Refresh_Value);
+}
 //启动Cw2015
-void	Cw2015_Wakeup(void)
+void Cw2015_Wakeup(void)
 {
 	IIC_Write_Reg(Cw2015_WR_ID,Cw2015_Mode_Reg,Cw2015_Wakeup_Value);
 }
+
+//设置低电压报警阈值
+void Cw2015_Set_Alarm_THD(void)
+{
+	IIC_Write_Reg(Cw2015_WR_ID,Cw2015_ALRT_Reg,Cw2015_Alarm_THD_Value);
+}
+
 //读取Cw2015电量百分比
 void Cw2015_Read_Bat_Percentage(void)
 {
-	//BYTE		Tmp;
-	int		Result;
+	BYTE		Result;
 
 	Result = IIC_Read_Reg(Cw2015_WR_ID,Cw2015_SOCH_Reg,Cw2015_RD_ID);
-	//Tmp    = IIC_Read_Reg(Cw2015_WR_ID,Cw2015_SOCL_Reg,Cw2015_RD_ID);
-	//Result = (Result<<8) | Tmp;
 	SendString("The Battery Percentage is:");
-	SendData((Result/10) + '0');
+	SendData((Result/100) + '0');
+	SendData(((Result/10)%10) + '0');
 	SendData((Result%10) + '0');
 	SendString("\r\n");
+}
+
+//读取Cw2015版本信息
+void Cw2015_Read_Version(void)
+{
+	BYTE	Result;
+
+	Result = IIC_Read_Reg(Cw2015_WR_ID,Cw2015_Version_Reg,Cw2015_RD_ID);
+	SendString("The Cw2015 Version is:");
+	SendData((Result/100) + '0');
+	SendData(((Result/10)%10) + '0');
+	SendData((Result%10) + '0');
+	SendString("\r\n");
+}
+
+//清除状态标志位，低电压报警
+void Cw2015_Clean_Alram_Flag(void)
+{
+	//清除报警标志位
+	IIC_Write_Reg(Cw2015_WR_ID,Cw2015_RRT_ALRT_Msb,0x00);
+}
+
+//初始化Cw2015电量计IC
+void Cw2015_Init_A(void)
+{
+	//打开电源
+	Cw2015_Pwr_CtrlA(On);
+	Bat_Delay500ms();
+	Bat_Delay500ms();
+	Bat_Delay500ms();
+	Bat_Delay500ms();
+	//唤醒Cw2015
+	Cw2015_Wakeup();
+	IIC_Delay();
+	//设置Cw2015报警阈值
+	Cw2015_Set_Alarm_THD();
+	IIC_Delay();
+	//清除报警标志位
+	Cw2015_Clean_Alram_Flag();
+	IIC_Delay();
+	SendString("Detect Cw2015 A!\r\n");
+	//读取Cw2015 A路电量
+	Cw2015_Read_Bat_Percentage();
+}
+
+//Cw2015报警检测
+BYTE Cw2015_Alarm_DetectA(void)
+{
+	BYTE A,B;
+	Bat_Low_Pwr_AlarmA = 1;
+	A = Bat_Low_Pwr_AlarmA;
+	Bat_Low_Pwr_AlarmA = 0;																																	  
+	B = Bat_Low_Pwr_AlarmA;
+	if(A==0&&B==0)
+	 {
+		return	0;
+	 }
+	else
+		return	1;
+}
+
+
+//测试电量计报警功能
+void Cw2015_Alarm_Test(void)
+{
+	while(1)
+	{
+		SendString("Fuction Test!\r\n");
+		//刷新Cw2015
+		Cw2015_POR_Refresh();
+		Bat_Delay500ms();
+		//唤醒Cw2015
+		Cw2015_Wakeup();
+		Bat_Delay500ms();
+		//如果检测到有报警信号，刷新标志位
+		if(Cw2015_Alarm_DetectA() == 0)
+		{
+			Cw2015_Clean_Alram_Flag();
+			SendString("Cw2015 Alramed !\r\n");
+		}
+		Bat_Delay500ms();
+		Cw2015_Read_Bat_Percentage();
+		
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+		Bat_Delay500ms();
+	}
 }
 
 //测试电池电量计
 void Battery_Test(void)
 {
-	while(0)
-	{
-		/*
-		SendString("Detect Cw2015 A!\r\n");
-		Cw2015_Pwr_CtrlA(On);
-		Cw2015_Pwr_CtrlB(Off);
-		Bat_Delay500ms();
-		Cw2015_Wakeup();
-		Bat_Delay500ms();
-		Cw2015_Read_Bat_Percentage();
-		
-		Cw2015_Pwr_CtrlA(Off);
-		Cw2015_Pwr_CtrlB(Off);
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-		*/
-		SendString("Detect Cw2015 B!\r\n");
-		Cw2015_Pwr_CtrlA(Off);
-		Cw2015_Pwr_CtrlB(On);
-		Bat_Delay500ms();
-		Cw2015_Wakeup();
-		Bat_Delay500ms();
-		Cw2015_Read_Bat_Percentage();
-		
-		Cw2015_Pwr_CtrlA(Off);
-		Cw2015_Pwr_CtrlB(Off);
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-	}
-	
-	SendString("Detect Cw2015 B!\r\n");
-	Cw2015_Pwr_CtrlA(Off);
-	Cw2015_Pwr_CtrlB(On);
-	Bat_Delay500ms();
-	Bat_Delay500ms();
-	Bat_Delay500ms();
-	Bat_Delay500ms();
-	Bat_Delay500ms();
-	Bat_Delay500ms();
-	Cw2015_Wakeup();
-	Bat_Delay500ms();
-	while(1)
-	{
-		Cw2015_Read_Bat_Percentage();
-		Bat_Delay500ms();
-		Bat_Delay500ms();
-	}
+	Cw2015_Alarm_Test();
 }
 
 
