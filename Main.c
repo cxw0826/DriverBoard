@@ -34,11 +34,11 @@ void main(void)
 
 	//初始化开关锁
 	Door_Init();
-	//Door_Test();
+	Door_Test();
 
 	//初始化电池电量计
 	Battery_Init();
-	Battery_Test();
+	//Battery_Test();
 	
 	while(1);
 }

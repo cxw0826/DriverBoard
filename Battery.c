@@ -290,16 +290,15 @@ void Cw2015_Init_A(void)
 	Bat_Delay500ms();
 	//唤醒Cw2015
 	Cw2015_Wakeup();
-	IIC_Delay();
+	Bat_Delay500ms();
 	//设置Cw2015报警阈值
 	Cw2015_Set_Alarm_THD();
-	IIC_Delay();
+	Bat_Delay500ms();
 	//清除报警标志位
 	Cw2015_Clean_Alram_Flag();
-	IIC_Delay();
-	SendString("Detect Cw2015 A!\r\n");
+	Bat_Delay500ms();
 	//读取Cw2015 A路电量
-	Cw2015_Read_Bat_Percentage();
+	//Cw2015_Read_Bat_Percentage();
 }
 
 //Cw2015报警检测
@@ -332,12 +331,13 @@ void Cw2015_Alarm_Test(void)
 		Cw2015_Wakeup();
 		Bat_Delay500ms();
 		//如果检测到有报警信号，刷新标志位
-		if(Cw2015_Alarm_DetectA() == 0)
+		while(Cw2015_Alarm_DetectA() == 0)
 		{
 			Cw2015_Clean_Alram_Flag();
 			SendString("Cw2015 Alramed !\r\n");
 		}
 		Bat_Delay500ms();
+		//读取电量
 		Cw2015_Read_Bat_Percentage();
 		
 		Bat_Delay500ms();
