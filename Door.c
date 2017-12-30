@@ -77,7 +77,7 @@ BYTE Door_SenseA_State(void)
 	BYTE A,B;
 	Door_SenseA =	1;
 	A = Door_SenseA;
-	Door_SenseA =	0;                                                                                                                                    
+	Door_SenseA =	0;
 	B = Door_SenseA;
 	if(A==0&&B==0)
 	 {
@@ -93,7 +93,7 @@ BYTE Door_SenseB_State(void)
 	BYTE A,B;
 	Door_SenseB=1;
 	A=Door_SenseB;
-	Door_SenseB=0;                                                                                                                                    
+	Door_SenseB=0;
 	B=Door_SenseB;
 	if(A==0&&B==0)
 	 {

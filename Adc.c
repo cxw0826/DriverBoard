@@ -57,8 +57,17 @@ void ADC_Init(void)
 void ADC_Test(void)
 {
 	BYTE		ADC_Result[3];
+	
+	ADC_Result[0] = ADC_GetResult();
+	ADC_Result[1] = '0' + ADC_Result[0]/10;
+	ADC_Result[2] = '0' + ADC_Result[1]%10;
+	SendString("Current ADC Result is :");
+	SendData(ADC_Result[1]);
+	SendData(ADC_Result[2]);
+	SendString("\r\n");
+	ADC_Delay500ms();
 	//¿Õ°å²âÊÔ½á¹ûÎª75
-	while(1)
+	while(0)
 	{
 		ADC_Result[0] = ADC_GetResult();
 		ADC_Result[1] = '0' + ADC_Result[0]/10;

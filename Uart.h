@@ -10,6 +10,8 @@ void SendData(BYTE dat);
 void SendString(char *s);
 void Uart_Init(void);
 void SendBlock(char *s,char size);
+void UartSendRecvData(void);
+
 
 
 #endif
